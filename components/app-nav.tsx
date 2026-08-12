@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/components/logout-button";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: "grid" },
@@ -57,7 +58,7 @@ export function Sidebar() {
       <div className="flex h-16 items-center border-b px-5"><Brand /></div>
       <nav aria-label="Primary navigation" className="flex flex-1 flex-col gap-1 p-3">
         {navigation.map((item) => <NavLink key={item.href} item={item} />)}
-        <div className="mt-auto border-t pt-3"><NavLink item={settings} /></div>
+        <div className="mt-auto space-y-1 border-t pt-3"><NavLink item={settings} /><LogoutButton /></div>
       </nav>
     </aside>
   );
@@ -74,7 +75,7 @@ export function MobileHeader() {
           </summary>
           <nav aria-label="Mobile navigation" className="absolute right-0 mt-2 w-56 space-y-1 rounded-xl border bg-white p-2 shadow-xl shadow-slate-900/10">
             {navigation.map((item) => <NavLink key={item.href} item={item} />)}
-            <div className="border-t pt-1"><NavLink item={settings} /></div>
+            <div className="space-y-1 border-t pt-1"><NavLink item={settings} /><LogoutButton /></div>
           </nav>
         </details>
       </div>
