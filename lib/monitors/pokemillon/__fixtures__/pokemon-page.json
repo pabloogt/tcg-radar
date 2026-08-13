@@ -1,0 +1,94 @@
+{
+  "products": [
+    {
+      "id": 1001,
+      "title": "Caja Elite de Entrenador | Destinos Brillantes",
+      "handle": "caja-elite-entrenador-destinos-brillantes",
+      "body_html": "<p>Producto sellado Pokémon.</p>",
+      "vendor": "Pokémon",
+      "product_type": "Pokémon",
+      "tags": ["Pokemon", "ETB"],
+      "options": [{ "name": "Idioma", "values": ["Español", "Inglés"] }],
+      "variants": [
+        { "id": 1101, "title": "Español", "option1": "Español", "available": true, "price": "49.90", "compare_at_price": "59.99", "featured_image": { "src": "//cdn.shopify.com/pokemon-es.jpg" } },
+        { "id": 1102, "title": "Inglés", "option1": "Inglés", "available": true, "price": "54.99", "compare_at_price": null, "featured_image": { "src": "//cdn.shopify.com/pokemon-en.jpg" } }
+      ],
+      "images": [{ "src": "//cdn.shopify.com/pokemon.jpg" }]
+    },
+    {
+      "id": 1002,
+      "title": "Caja Colección Charizard ex (Español)",
+      "handle": "caja-coleccion-charizard-ex",
+      "body_html": null,
+      "vendor": "Pokémon",
+      "product_type": "Pokémon",
+      "tags": ["Pokemon", "Collection Box"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 1201, "title": "Default Title", "option1": "Default Title", "available": false, "price": "34.95", "compare_at_price": null }],
+      "images": [{ "src": "https://cdn.shopify.com/collection.jpg" }]
+    },
+    {
+      "id": 1003,
+      "title": "Booster Box especial",
+      "handle": "booster-box-especial",
+      "body_html": null,
+      "vendor": "Pokémon",
+      "product_type": "Pokémon",
+      "tags": ["Pokemon"],
+      "options": [{ "name": "Edición", "values": ["Normal", "Premium"] }],
+      "variants": [
+        { "id": 1301, "title": "Normal", "option1": "Normal", "available": true, "price": "99.99", "compare_at_price": null },
+        { "id": 1302, "title": "Premium", "option1": "Premium", "available": true, "price": "129.99", "compare_at_price": null }
+      ],
+      "images": []
+    },
+    {
+      "id": 1004,
+      "title": "Carta suelta Pikachu",
+      "handle": "carta-suelta-pikachu",
+      "body_html": null,
+      "vendor": "Pokémon",
+      "product_type": "Cartas sueltas",
+      "tags": ["Single"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 1401, "title": "Default Title", "available": true, "price": "2.00", "compare_at_price": null }],
+      "images": []
+    },
+    {
+      "id": 1005,
+      "title": "Mystery Box Pokémon",
+      "handle": "mystery-box-pokemon",
+      "body_html": null,
+      "vendor": "Pokemillon",
+      "product_type": "Pokémon",
+      "tags": ["Mystery"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 1501, "title": "Default Title", "available": true, "price": "39.99", "compare_at_price": null }],
+      "images": []
+    },
+    {
+      "id": 1006,
+      "title": "Fundas Pokémon Premium",
+      "handle": "fundas-pokemon-premium",
+      "body_html": null,
+      "vendor": "Pokemillon",
+      "product_type": "Accesorios",
+      "tags": ["Sleeves"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 1601, "title": "Default Title", "available": true, "price": "9.99", "compare_at_price": null }],
+      "images": []
+    },
+    {
+      "id": 1007,
+      "title": "Booster Bundle Pokémon (Español)",
+      "handle": "booster-bundle-malformado",
+      "body_html": null,
+      "vendor": "Pokémon",
+      "product_type": "Pokémon",
+      "tags": ["Booster Bundle"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 1701, "title": "Default Title", "available": true, "price": "precio", "compare_at_price": null }],
+      "images": []
+    }
+  ]
+}

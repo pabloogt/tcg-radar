@@ -1,0 +1,2 @@
+const labels: Record<string, string> = { in_stock: "En stock", out_of_stock: "Agotado", preorder: "Preventa", unknown: "Desconocido" };
+export function ListingStatus({ status }: { status: string }) { const active = status === "in_stock" || status === "preorder"; return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${active ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{labels[status] ?? status}</span>; }

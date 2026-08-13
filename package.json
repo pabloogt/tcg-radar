@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "monitor:pokemillon:dry": "node scripts/run-pokemillon-dry.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",

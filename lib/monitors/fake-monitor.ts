@@ -1,0 +1,5 @@
+import type { NormalizedListingObservation, StoreMonitor } from "./types";
+export class FakeStoreMonitor implements StoreMonitor {
+  readonly sourceKey = "fake_store";
+  async run(): Promise<NormalizedListingObservation[]> { const base = { source: this.sourceKey, sourceProductId: "pokemon-etb-001", store: { name: "Fake Cards", websiteUrl: "https://www.fakecards.es/", country: "ES" }, product: { tcg: "pokemon" as const, name: "Elite Trainer Box", setName: "Demo Set", productType: "ETB", language: "es", imageUrl: null }, listing: { url: "https://fakecards.es/products/etb?utm_source=test", priceCents: 5999, shippingCents: 0, shippingKnown: true, stockStatus: "in_stock" as const, availableQuantity: null, seller: null, country: "ES" }, observedAt: "2026-01-01T10:00:00.000Z" }; return [base, { ...base, listing: { ...base.listing, priceCents: 4999 }, observedAt: "2026-01-02T10:00:00.000Z" }, { ...base, listing: { ...base.listing, priceCents: 4999, stockStatus: "out_of_stock" }, observedAt: "2026-01-03T10:00:00.000Z" }, { ...base, listing: { ...base.listing, priceCents: 4999 }, observedAt: "2026-01-04T10:00:00.000Z" }]; }
+}

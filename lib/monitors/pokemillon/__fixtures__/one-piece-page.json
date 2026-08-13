@@ -1,0 +1,28 @@
+{
+  "products": [
+    {
+      "id": 2001,
+      "title": "OP-12 Legacy of the Master - Caja de 24 sobres (English)",
+      "handle": "op-12-legacy-master-booster-box",
+      "body_html": "<p>One Piece Card Game sealed booster box.</p>",
+      "vendor": "Bandai",
+      "product_type": "One Piece",
+      "tags": ["One Piece", "Booster Box"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 2101, "title": "Default Title", "option1": "Default Title", "available": false, "price": "129.99", "compare_at_price": "149.99" }],
+      "images": [{ "src": "https://cdn.shopify.com/one-piece-op12.jpg" }]
+    },
+    {
+      "id": 2002,
+      "title": "Preventa Starter Deck ST-25 (Japonés)",
+      "handle": "starter-deck-st-25-japones",
+      "body_html": "<p>Reserva abierta.</p>",
+      "vendor": "Bandai",
+      "product_type": "One Piece",
+      "tags": ["One Piece", "Preorder", "Starter Deck"],
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [{ "id": 2201, "title": "Default Title", "option1": "Default Title", "available": true, "price": "14.90", "compare_at_price": null }],
+      "images": [{ "src": "//cdn.shopify.com/st25.jpg" }]
+    }
+  ]
+}

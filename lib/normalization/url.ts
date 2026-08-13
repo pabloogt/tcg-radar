@@ -1,0 +1,3 @@
+const tracking = new Set(["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid"]);
+export function normalizeDomain(rawUrl: string): string { const url = new URL(rawUrl); return url.hostname.toLowerCase().replace(/^www\./, ""); }
+export function normalizeListingUrl(rawUrl: string): string { const url = new URL(rawUrl); const host = url.hostname.toLowerCase().replace(/^www\./, ""); const path = url.pathname.replace(/\/+$/, "") || "/"; const params = [...url.searchParams.entries()].filter(([key]) => !tracking.has(key.toLowerCase())).sort(([a], [b]) => a.localeCompare(b)); const query = new URLSearchParams(params).toString(); return `${host}${path}${query ? `?${query}` : ""}`; }
