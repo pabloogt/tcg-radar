@@ -1,6 +1,6 @@
 import type { OpportunityResult } from "@/lib/finance/opportunity";
 
-export type AlertType = "price_drop" | "back_in_stock" | "target_price" | "financial_opportunity";
+export type AlertType = "new_product" | "price_drop" | "back_in_stock" | "target_price" | "financial_opportunity";
 
 export type AlertCandidate = {
   alertType: AlertType;
@@ -26,6 +26,7 @@ export type AlertCandidate = {
 export type AlertContext = {
   productId: string;
   productName: string;
+  productType: string;
   tcg: string;
   language: string;
   storeId: string;
@@ -40,9 +41,25 @@ export type AlertContext = {
   targetPriceCents?: number;
   minimumPriceDropBasisPoints?: number;
   evaluation?: OpportunityResult;
+  isNewListing?: boolean;
 };
 
 const DEFAULT_MINIMUM_PRICE_DROP_BASIS_POINTS = 500;
+const ALERTABLE_SEALED_PRODUCT_TYPES = new Set([
+  "elite_trainer_box",
+  "booster_box",
+  "booster_bundle",
+  "collection_box",
+  "tin",
+  "starter_deck",
+  "premium_collection",
+  "other_sealed",
+]);
+
+export function isAlertableSealedProductType(productType: string): boolean {
+  return ALERTABLE_SEALED_PRODUCT_TYPES.has(productType)
+    || /^sealed_case_(?:[2-9]|[1-9]\d+)_(?:etb|booster_box)$/.test(productType);
+}
 
 export function evaluateAlertCandidates(context: AlertContext): AlertCandidate[] {
   const base = {
@@ -62,22 +79,51 @@ export function evaluateAlertCandidates(context: AlertContext): AlertCandidate[]
     totalAcquisitionCostCents: context.shippingCents === null ? null : context.newPriceCents + context.shippingCents,
   };
   const candidates: AlertCandidate[] = [];
+  const purchasable = context.newStockStatus === "in_stock" || context.newStockStatus === "preorder";
+  const financiallyAttractive = context.evaluation?.recommendation === "BUY" || context.evaluation?.recommendation === "STRONG_BUY";
+  const targetSatisfied = context.targetPriceCents !== undefined && context.newPriceCents <= context.targetPriceCents;
+
+  if (context.isNewListing) {
+    if (purchasable && isAlertableSealedProductType(context.productType)) {
+      candidates.push({
+        ...base,
+        alertType: "new_product",
+        financialRecommendation: null,
+        reason: context.newStockStatus === "preorder" ? "Nuevo producto sellado disponible en preventa." : "Nuevo producto sellado disponible.",
+        dedupeKey: `new_product:${context.listingId}`,
+      });
+    }
+    return candidates;
+  }
+
   const minimumDrop = context.minimumPriceDropBasisPoints ?? DEFAULT_MINIMUM_PRICE_DROP_BASIS_POINTS;
   const priceDropMeetsThreshold = context.oldPriceCents !== null
     && context.oldPriceCents > 0
     && context.newPriceCents < context.oldPriceCents
     && (context.oldPriceCents - context.newPriceCents) * 10_000 >= context.oldPriceCents * minimumDrop;
+  const restocked = context.oldStockStatus === "out_of_stock" && context.newStockStatus === "in_stock";
 
-  if (priceDropMeetsThreshold) {
+  if (restocked && (targetSatisfied || financiallyAttractive)) {
+    candidates.push({
+      ...base,
+      alertType: "back_in_stock",
+      financialRecommendation: financiallyAttractive ? context.evaluation?.recommendation ?? null : null,
+      reason: "El producto vuelve a estar disponible y cumple una condición de oportunidad.",
+      dedupeKey: `back_in_stock:${context.listingId}:out_of_stock:in_stock:${context.newPriceCents}`,
+    });
+    return candidates;
+  }
+
+  if (purchasable && priceDropMeetsThreshold) {
     candidates.push({ ...base, alertType: "price_drop", financialRecommendation: context.evaluation?.recommendation ?? null, reason: `Precio reducido de ${context.oldPriceCents} a ${context.newPriceCents} céntimos.`, dedupeKey: `price_drop:${context.listingId}:${context.newPriceCents}` });
   }
-  if (context.oldStockStatus === "out_of_stock" && context.newStockStatus === "in_stock") {
+  if (restocked) {
     candidates.push({ ...base, alertType: "back_in_stock", financialRecommendation: context.evaluation?.recommendation ?? null, reason: "El producto vuelve a estar disponible.", dedupeKey: `back_in_stock:${context.listingId}:out_of_stock:in_stock:${context.newPriceCents}` });
   }
-  if (context.targetPriceCents !== undefined && context.oldPriceCents !== null && context.oldPriceCents > context.targetPriceCents && context.newPriceCents <= context.targetPriceCents) {
+  if (purchasable && targetSatisfied && context.oldPriceCents !== null && context.targetPriceCents !== undefined && context.oldPriceCents > context.targetPriceCents) {
     candidates.push({ ...base, alertType: "target_price", financialRecommendation: context.evaluation?.recommendation ?? null, reason: `El precio ha cruzado el objetivo de ${context.targetPriceCents} céntimos.`, dedupeKey: `target_price:${context.listingId}:${context.targetPriceCents}:${context.newPriceCents}` });
   }
-  if (context.evaluation && (context.evaluation.recommendation === "BUY" || context.evaluation.recommendation === "STRONG_BUY")) {
+  if (purchasable && context.evaluation && financiallyAttractive) {
     candidates.push({ ...base, alertType: "financial_opportunity", financialRecommendation: context.evaluation.recommendation, reason: context.evaluation.recommendation_explanation, dedupeKey: `financial:${context.listingId}:${context.newPriceCents}:${context.evaluation.recommendation}` });
   }
   return candidates;

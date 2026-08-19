@@ -11,7 +11,7 @@ const optionalText = (maximum: number) => z.string().trim().min(1).max(maximum).
 export const tcgSchema = z.enum(["pokemon", "one_piece", "lorcana"]);
 export const reprintRiskSchema = z.enum(["low", "medium", "high", "unknown"]);
 export const stockStatusSchema = z.enum(["in_stock", "out_of_stock", "preorder", "unknown"]);
-export const alertTypeSchema = z.enum(["price_drop", "back_in_stock", "target_price", "manual"]);
+export const alertTypeSchema = z.enum(["new_product", "price_drop", "back_in_stock", "target_price", "financial_opportunity", "manual"]);
 
 export const productSchema = z.object({
   user_id: uuidSchema,
