@@ -47,4 +47,15 @@ create policy "Users view own monitor runs"
   for select
   using ((select auth.uid()) = user_id);
 
+create policy "Users create own monitor runs"
+  on public.monitor_runs
+  for insert
+  with check ((select auth.uid()) = user_id);
+
+create policy "Users update own monitor runs"
+  on public.monitor_runs
+  for update
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
 commit;
