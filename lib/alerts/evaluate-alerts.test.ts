@@ -42,6 +42,15 @@ describe("alert evaluation", () => {
     expect(evaluateAlertCandidates({ ...base, oldPriceCents: 5000, newPriceCents: 5100 })).toHaveLength(0);
   });
 
+  it("creates a deterministic new-low candidate instead of a duplicate price-drop message", () => {
+    const context = { ...base, newPriceLow: { periodDays: 30 as const, previousMinimumCents: 5_490 } };
+    const first = evaluateAlertCandidates(context);
+    const repeated = evaluateAlertCandidates(context);
+    expect(first).toHaveLength(1);
+    expect(first[0]).toMatchObject({ alertType: "new_price_low", previousLowCents: 5_490, dedupeKey: "price_drop:listing:5000" });
+    expect(repeated[0]?.dedupeKey).toBe(first[0]?.dedupeKey);
+  });
+
   it("does not create an actionable price drop while out of stock or unknown", () => {
     expect(evaluateAlertCandidates({ ...base, newStockStatus: "out_of_stock" })).toHaveLength(0);
     expect(evaluateAlertCandidates({ ...base, newStockStatus: "unknown" })).toHaveLength(0);

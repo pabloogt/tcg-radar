@@ -6,6 +6,8 @@ import type { Database } from "@/lib/supabase/database.types";
 
 const protectedRoutes = [
   "/dashboard",
+  "/search",
+  "/investment",
   "/products",
   "/stores",
   "/listings",

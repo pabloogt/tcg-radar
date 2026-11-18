@@ -11,7 +11,7 @@ const optionalText = (maximum: number) => z.string().trim().min(1).max(maximum).
 export const tcgSchema = z.enum(["pokemon", "one_piece", "lorcana"]);
 export const reprintRiskSchema = z.enum(["low", "medium", "high", "unknown"]);
 export const stockStatusSchema = z.enum(["in_stock", "out_of_stock", "preorder", "unknown"]);
-export const alertTypeSchema = z.enum(["new_product", "price_drop", "back_in_stock", "target_price", "financial_opportunity", "manual"]);
+export const alertTypeSchema = z.enum(["new_product", "price_drop", "back_in_stock", "target_price", "financial_opportunity", "new_price_low", "deal_good_price", "deal_opportunity", "deal_bargain", "manual"]);
 
 export const productSchema = z.object({
   user_id: uuidSchema,
@@ -55,8 +55,13 @@ export const priceHistorySchema = z.object({
   user_id: uuidSchema,
   listing_id: uuidSchema,
   price_cents: centsSchema,
+  shipping_cents: centsSchema.nullable(),
+  shipping_known: z.boolean(),
   stock_status: stockStatusSchema,
   recorded_at: timestampSchema,
+}).superRefine((history, context) => {
+  if (history.shipping_known && history.shipping_cents === null) context.addIssue({ code: "custom", path: ["shipping_cents"], message: "Known shipping requires an amount" });
+  if (!history.shipping_known && history.shipping_cents !== null) context.addIssue({ code: "custom", path: ["shipping_cents"], message: "Unknown shipping must not contain an amount" });
 });
 
 export const purchaseSchema = z.object({

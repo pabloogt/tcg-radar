@@ -63,4 +63,17 @@ describe("manual Pokemillon execution", () => {
     expect(ingest).toHaveBeenCalledTimes(result.observations.length);
     expect(result.ingestion.productsMatched).toBe(result.observations.length);
   });
+
+  it("batches changed products for post-ingestion investment snapshots", async () => {
+    const afterIngestion = vi.fn(async () => undefined);
+    await executePokemillonMonitor({
+      ...monitorOptions,
+      dryRun: false,
+      ingest: async () => ({ ...successfulIngestion(), listing: { ...successfulIngestion().listing, priceChanged: true, historyCreated: true } }),
+      afterIngestion,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(pokemonPage)),
+    });
+    expect(afterIngestion).toHaveBeenCalledOnce();
+    expect(afterIngestion).toHaveBeenCalledWith(["product-id"]);
+  });
 });

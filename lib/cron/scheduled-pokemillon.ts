@@ -5,6 +5,9 @@ import { ingestObservation } from "@/lib/ingestion/ingest-observation";
 import { SupabaseIngestionRepository } from "@/lib/ingestion/supabase-repository";
 import { executePokemillonMonitor, type PokemillonExecutionResult } from "@/lib/monitors/pokemillon";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadProductInvestmentAnalyses } from "@/lib/investment/product-data";
+import { persistProductInvestmentSnapshot } from "@/lib/investment/product-snapshots";
+import { refreshMarketSignalsForProductsSafely } from "@/lib/market-signals/refresh";
 import type { MonitorRunCounts, MonitorRunRepository } from "./monitor-runs";
 import { SupabaseMonitorRunRepository } from "./monitor-runs";
 
@@ -104,6 +107,7 @@ export async function runConfiguredScheduledPokemillon(ownerUserId: string): Pro
       retries: 2,
       ingest: (observation) => ingestObservation(ingestion, observation),
       deliver: async (outcome) => (await deliverAlertCandidates(delivery, outcome.alertCandidates)).summary,
+      afterIngestion: async (productIds) => { await refreshMarketSignalsForProductsSafely(admin, ownerUserId, productIds); const analyses = await loadProductInvestmentAnalyses(admin, ownerUserId, { productIds, limit: productIds.length }); for (const analysis of analyses) await persistProductInvestmentSnapshot(admin, ownerUserId, analysis); },
     }),
   });
 }

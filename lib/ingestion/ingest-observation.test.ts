@@ -3,23 +3,30 @@ import { FakeStoreMonitor } from "@/lib/monitors/fake-monitor";
 import type { NormalizedListingObservation } from "@/lib/monitors/types";
 import { ingestObservation } from "./ingest-observation";
 import type { IngestionRepository, ListingIdentity, StoreIdentity } from "./repository";
+import { DEFAULT_DEAL_THRESHOLDS } from "@/lib/market/deal";
+import type { MarketReference } from "@/lib/market/reference";
 
 class MemoryRepository implements IngestionRepository {
   stores = new Map<string, { id: string; name: string }>();
   products = new Map<string, { id: string; name: string }>();
-  listings = new Map<string, { id: string; productId: string; storeId: string; priceCents: number; shippingCents: number; stockStatus: string }>();
-  history: Array<{ price: number; stock: string }> = [];
+  listings = new Map<string, { id: string; productId: string; storeId: string; priceCents: number; shippingCents: number; shippingKnown: boolean; stockStatus: string }>();
+  history: Array<{ listingId: string; priceCents: number; shippingCents: number | null; shippingKnown: boolean; stockStatus: string; recordedAt: string }> = [];
   targetPriceCents: number | null = null;
+  snapshots: MarketReference[] = [];
 
   async findStore(identity: StoreIdentity) { return this.stores.get(identity.sourceKey) ?? this.stores.get(identity.domain) ?? null; }
   async createStore(identity: StoreIdentity, value: NormalizedListingObservation["store"]) { const row = { id: "store-1", name: value.name }; this.stores.set(identity.sourceKey, row); this.stores.set(identity.domain, row); return row; }
   async findProduct(key: string) { return this.products.get(key) ?? null; }
   async createProduct(key: string, value: NormalizedListingObservation["product"]) { const row = { id: "product-1", name: value.name }; this.products.set(key, row); return row; }
   async findListing(identity: ListingIdentity) { return this.listings.get(identity.sourceProductId ?? identity.canonicalUrl) ?? null; }
-  async createListing(identity: ListingIdentity, productId: string, storeId: string, observation: NormalizedListingObservation) { const row = { id: "listing-1", productId, storeId, priceCents: observation.listing.priceCents, shippingCents: observation.listing.shippingCents ?? 0, stockStatus: observation.listing.stockStatus }; this.listings.set(identity.sourceProductId ?? identity.canonicalUrl, row); return row; }
-  async updateListing(id: string, observation: NormalizedListingObservation) { const entry = [...this.listings.entries()].find(([, row]) => row.id === id); if (entry) this.listings.set(entry[0], { ...entry[1], priceCents: observation.listing.priceCents, shippingCents: observation.listing.shippingCents ?? 0, stockStatus: observation.listing.stockStatus }); }
-  async createPriceHistory(_id: string, observation: NormalizedListingObservation) { this.history.push({ price: observation.listing.priceCents, stock: observation.listing.stockStatus }); }
+  async createListing(identity: ListingIdentity, productId: string, storeId: string, observation: NormalizedListingObservation) { const row = { id: "listing-1", productId, storeId, priceCents: observation.listing.priceCents, shippingCents: observation.listing.shippingCents ?? 0, shippingKnown: observation.listing.shippingKnown, stockStatus: observation.listing.stockStatus }; this.listings.set(identity.sourceProductId ?? identity.canonicalUrl, row); return row; }
+  async updateListing(id: string, observation: NormalizedListingObservation) { const entry = [...this.listings.entries()].find(([, row]) => row.id === id); if (entry) this.listings.set(entry[0], { ...entry[1], priceCents: observation.listing.priceCents, shippingCents: observation.listing.shippingCents ?? 0, shippingKnown: observation.listing.shippingKnown, stockStatus: observation.listing.stockStatus }); }
+  async createPriceHistory(id: string, observation: NormalizedListingObservation) { this.history.push({ listingId: id, priceCents: observation.listing.priceCents, shippingCents: observation.listing.shippingKnown ? observation.listing.shippingCents : null, shippingKnown: observation.listing.shippingKnown, stockStatus: observation.listing.stockStatus, recordedAt: observation.observedAt }); }
+  async getProductPriceHistory() { return [...this.history]; }
   async getActiveListingTargetPrice() { return this.targetPriceCents; }
+  async getProductMarketContext(productId: string) { return { currentListings: [...this.listings.values()].filter((listing) => listing.productId === productId).map((listing) => ({ productId, listingId: listing.id, storeId: listing.storeId, priceCents: listing.priceCents, shippingCents: listing.shippingKnown ? listing.shippingCents : null, shippingKnown: listing.shippingKnown, stockStatus: listing.stockStatus, observedAt: "2026-01-01T00:00:00Z" })), history: this.history.map((entry) => ({ productId, listingId: entry.listingId, priceCents: entry.priceCents, shippingCents: entry.shippingCents, shippingKnown: entry.shippingKnown, stockStatus: entry.stockStatus, observedAt: entry.recordedAt })) }; }
+  async getDealConfiguration() { return { thresholds: DEFAULT_DEAL_THRESHOLDS, alerts: { alertBargains: true, alertOpportunities: true, alertGoodPrices: false } }; }
+  async saveMarketReferenceSnapshot(reference: MarketReference) { this.snapshots.push(reference); }
 }
 
 const financialAssumptions = {
@@ -49,7 +56,7 @@ describe("automatic ingestion", () => {
     const stockReturn = await ingestObservation(repository, observations[3]);
     expect(first.alertCandidates.map((candidate) => candidate.alertType)).toEqual(["new_product"]);
     expect(duplicate.alertCandidates).toHaveLength(0);
-    expect(decrease.alertCandidates[0]?.alertType).toBe("price_drop");
+    expect(decrease.alertCandidates[0]?.alertType).toBe("new_price_low");
     expect(stockLoss.listing.stockChanged).toBe(true);
     expect(stockReturn.alertCandidates[0]?.alertType).toBe("back_in_stock");
     expect(repository.stores.size).toBe(2);
@@ -89,20 +96,21 @@ describe("automatic ingestion", () => {
     const identity = base.sourceProductId ?? base.listing.url;
     repository.stores.set("fake_store", { id: "store-1", name: "Fake Cards" });
     repository.products.set("pokemon|demo set|elite trainer box|elite trainer box|es", { id: "product-1", name: base.product.name });
-    repository.listings.set(identity, { id: "listing-1", productId: "product-1", storeId: "store-1", priceCents: base.listing.priceCents, shippingCents: 0, stockStatus: base.listing.stockStatus });
+    repository.listings.set(identity, { id: "listing-1", productId: "product-1", storeId: "store-1", priceCents: base.listing.priceCents, shippingCents: 0, shippingKnown: true, stockStatus: base.listing.stockStatus });
     const result = await ingestObservation(repository, base);
     expect(result.listing.created).toBe(false);
     expect(result.alertCandidates).toHaveLength(0);
   });
 
-  it("returns deterministic price-drop candidates for delivery deduplication", async () => {
+  it("keeps unchanged observations silent and allows a later genuine deal cycle", async () => {
     const repository = new MemoryRepository();
     const observations = await new FakeStoreMonitor().run();
     await ingestObservation(repository, observations[0]);
     const firstDrop = await ingestObservation(repository, observations[1]);
     await ingestObservation(repository, observations[0]);
     const repeatedDrop = await ingestObservation(repository, observations[1]);
-    expect(firstDrop.alertCandidates[0]?.dedupeKey).toBe(repeatedDrop.alertCandidates[0]?.dedupeKey);
+    expect(firstDrop.alertCandidates[0]?.dedupeKey).toBe("price_drop:listing-1:4999");
+    expect(repeatedDrop.alertCandidates[0]).toMatchObject({ alertType: "deal_opportunity", dedupeKey: "deal:listing-1:OPPORTUNITY:2026-01-02T10:00:00.000Z" });
   });
 
   it("reports insufficient market data", async () => {

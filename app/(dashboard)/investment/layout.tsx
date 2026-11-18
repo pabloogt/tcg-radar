@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function InvestmentLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return <><div className="mb-3 flex flex-wrap justify-end gap-2"><Link href="/investment/cards" className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:border-emerald-300">Por cartas</Link><Link href="/investment/pull-rates" className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:border-emerald-300">Por Pull Rates</Link><Link href="/investment/data/signals" className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:border-emerald-300">Señales de mercado</Link><Link href="/investment/data" className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:border-emerald-300">Datos de inversión</Link><Link href="/investment/portfolio" className="rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:border-emerald-300">Crear cartera</Link></div>{children}</>;
+}

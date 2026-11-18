@@ -29,7 +29,7 @@ export async function createListing(_state: ActionState, formData: FormData): Pr
   const checkedAt = new Date().toISOString();
   const { data: listing, error } = await supabase.from("listings").insert({ ...parsed.data, price_cents: parsed.data.price_cents, shipping_known: true, user_id: user.id, checked_at: checkedAt }).select("id").single();
   if (error) return databaseErrorState("No se pudo crear el listing.");
-  const { error: historyError } = await supabase.from("price_history").insert({ listing_id: listing.id, price_cents: parsed.data.price_cents, stock_status: parsed.data.stock_status, user_id: user.id, recorded_at: checkedAt });
+  const { error: historyError } = await supabase.from("price_history").insert({ listing_id: listing.id, price_cents: parsed.data.price_cents, shipping_cents: parsed.data.shipping_cents, shipping_known: true, stock_status: parsed.data.stock_status, user_id: user.id, recorded_at: checkedAt });
   if (historyError) {
     await supabase.from("listings").delete().eq("id", listing.id).eq("user_id", user.id);
     return databaseErrorState("No se pudo crear el historial inicial del listing.");
@@ -52,7 +52,7 @@ export async function updateListing(_state: ActionState, formData: FormData): Pr
   if (error) return databaseErrorState("No se pudo actualizar el listing.");
   if (!data) return databaseErrorState("El listing no existe o no te pertenece.");
   if (current.price_cents !== parsed.data.price_cents || current.stock_status !== parsed.data.stock_status) {
-    const { error: historyError } = await supabase.from("price_history").insert({ listing_id: id.data, price_cents: parsed.data.price_cents, stock_status: parsed.data.stock_status, user_id: user.id, recorded_at: checkedAt });
+    const { error: historyError } = await supabase.from("price_history").insert({ listing_id: id.data, price_cents: parsed.data.price_cents, shipping_cents: parsed.data.shipping_cents, shipping_known: true, stock_status: parsed.data.stock_status, user_id: user.id, recorded_at: checkedAt });
     if (historyError) return databaseErrorState("El listing se actualizó, pero no se pudo registrar su historial.");
   }
   revalidatePath("/listings"); revalidatePath(`/products/${current.product_id}`); revalidatePath(`/products/${parsed.data.product_id}`); revalidatePath(`/stores/${current.store_id}`); revalidatePath(`/stores/${parsed.data.store_id}`);

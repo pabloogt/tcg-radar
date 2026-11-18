@@ -6,6 +6,8 @@ import { LogoutButton } from "@/components/logout-button";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: "grid" },
+  { href: "/search", label: "Buscar", icon: "search" },
+  { href: "/investment", label: "Investment", icon: "trend" },
   { href: "/products", label: "Products", icon: "box" },
   { href: "/stores", label: "Stores", icon: "store" },
   { href: "/listings", label: "Listings", icon: "tag" },
@@ -20,6 +22,8 @@ type IconName = (typeof navigation)[number]["icon"] | typeof settings.icon;
 function NavIcon({ name }: { name: IconName }) {
   const paths: Record<IconName, React.ReactNode> = {
     grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
+    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
+    trend: <><path d="m3 17 6-6 4 4 8-9" /><path d="M15 6h6v6" /></>,
     box: <><path d="m21 8-9-5-9 5 9 5 9-5Z" /><path d="m3 8 9 5 9-5v8l-9 5-9-5V8Z" /></>,
     store: <><path d="M4 10v11h16V10" /><path d="M3 4h18l-2 6H5L3 4Z" /><path d="M9 21v-6h6v6" /></>,
     tag: <><path d="M20 13 11 22l-9-9V4h9l9 9Z" /><circle cx="7" cy="9" r="1" /></>,
@@ -57,6 +61,7 @@ export function Sidebar() {
     <aside className="fixed inset-y-0 left-0 hidden w-60 border-r bg-white lg:flex lg:flex-col">
       <div className="flex h-16 items-center border-b px-5"><Brand /></div>
       <nav aria-label="Primary navigation" className="flex flex-1 flex-col gap-1 p-3">
+        <form action="/search" className="mb-2 flex rounded-lg border bg-slate-50 focus-within:border-emerald-400"><label htmlFor="sidebar-search" className="sr-only">Buscar productos</label><input id="sidebar-search" name="q" placeholder="Buscar producto…" className="h-9 min-w-0 flex-1 bg-transparent px-3 text-xs outline-none" /><button aria-label="Buscar" className="px-2 text-slate-500"><NavIcon name="search" /></button></form>
         {navigation.map((item) => <NavLink key={item.href} item={item} />)}
         <div className="mt-auto space-y-1 border-t pt-3"><NavLink item={settings} /><LogoutButton /></div>
       </nav>
@@ -74,6 +79,7 @@ export function MobileHeader() {
             <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
           </summary>
           <nav aria-label="Mobile navigation" className="absolute right-0 mt-2 w-56 space-y-1 rounded-xl border bg-white p-2 shadow-xl shadow-slate-900/10">
+            <form action="/search" className="mb-2 flex rounded-lg border bg-slate-50"><label htmlFor="mobile-search" className="sr-only">Buscar productos</label><input id="mobile-search" name="q" placeholder="Buscar producto…" className="h-9 min-w-0 flex-1 bg-transparent px-3 text-xs outline-none" /><button aria-label="Buscar" className="px-2 text-slate-500"><NavIcon name="search" /></button></form>
             {navigation.map((item) => <NavLink key={item.href} item={item} />)}
             <div className="space-y-1 border-t pt-1"><NavLink item={settings} /><LogoutButton /></div>
           </nav>

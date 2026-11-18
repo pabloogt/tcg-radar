@@ -1,6 +1,8 @@
 import type { OpportunityResult } from "@/lib/finance/opportunity";
+import type { ComparisonBasis, MarketReferenceConfidence } from "@/lib/market/reference";
+import type { DealClassification } from "@/lib/market/deal";
 
-export type AlertType = "new_product" | "price_drop" | "back_in_stock" | "target_price" | "financial_opportunity";
+export type AlertType = "new_product" | "price_drop" | "back_in_stock" | "target_price" | "financial_opportunity" | "new_price_low" | "deal_good_price" | "deal_opportunity" | "deal_bargain";
 
 export type AlertCandidate = {
   alertType: AlertType;
@@ -19,6 +21,13 @@ export type AlertCandidate = {
   targetPriceCents: number | null;
   totalAcquisitionCostCents: number | null;
   financialRecommendation: OpportunityResult["recommendation"] | null;
+  priceLowPeriodDays?: 7 | 30;
+  previousLowCents?: number;
+  dealClassification?: DealClassification;
+  marketReferenceCents?: number;
+  marketDifferenceBps?: number | null;
+  comparisonBasis?: ComparisonBasis;
+  referenceConfidence?: Exclude<MarketReferenceConfidence, "INSUFFICIENT">;
   reason: string;
   dedupeKey: string;
 };
@@ -42,6 +51,7 @@ export type AlertContext = {
   minimumPriceDropBasisPoints?: number;
   evaluation?: OpportunityResult;
   isNewListing?: boolean;
+  newPriceLow?: { periodDays: 7 | 30; previousMinimumCents: number };
 };
 
 const DEFAULT_MINIMUM_PRICE_DROP_BASIS_POINTS = 500;
@@ -114,7 +124,9 @@ export function evaluateAlertCandidates(context: AlertContext): AlertCandidate[]
     return candidates;
   }
 
-  if (purchasable && priceDropMeetsThreshold) {
+  if (purchasable && context.newPriceLow) {
+    candidates.push({ ...base, alertType: "new_price_low", financialRecommendation: context.evaluation?.recommendation ?? null, priceLowPeriodDays: context.newPriceLow.periodDays, previousLowCents: context.newPriceLow.previousMinimumCents, reason: `Nuevo mínimo confirmado de ${context.newPriceLow.periodDays} días.`, dedupeKey: `price_drop:${context.listingId}:${context.newPriceCents}` });
+  } else if (purchasable && priceDropMeetsThreshold) {
     candidates.push({ ...base, alertType: "price_drop", financialRecommendation: context.evaluation?.recommendation ?? null, reason: `Precio reducido de ${context.oldPriceCents} a ${context.newPriceCents} céntimos.`, dedupeKey: `price_drop:${context.listingId}:${context.newPriceCents}` });
   }
   if (restocked) {

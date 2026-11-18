@@ -64,4 +64,13 @@ describe("Telegram formatter", () => {
     expect(message).toContain("REPOSICIÓN + OPORTUNIDAD");
     expect(message).toContain("Recomendación financiera: BUY");
   });
+
+  it("formats a market deal without calling it a profitable flip", () => {
+    const message = formatTelegramAlert({ ...candidate, alertType: "deal_bargain", dealClassification: "CHOLLO", marketReferenceCents: 6_190, marketDifferenceBps: 1_777, comparisonBasis: "BASE_PRICE", referenceConfidence: "MEDIUM", newPriceCents: 5_090, dedupeKey: "deal:l:CHOLLO:cycle" });
+    expect(message).toContain("CHOLLO DETECTADO");
+    expect(message).toContain("Referencia de mercado: 61,90 €");
+    expect(message).toContain("Diferencia: -17,77 %");
+    expect(message).toContain("Confianza: Media");
+    expect(message).not.toContain("rentable");
+  });
 });

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { databaseErrorState, type ActionState, validationState } from "@/lib/crud/action-state";
 import { requireUser } from "@/lib/auth/require-user";
 import { productFormSchema } from "@/lib/validation/crud";
+import { resolveProductSet } from "@/lib/investment/linking";
 
 function productValues(formData: FormData) {
   return {
@@ -18,12 +19,19 @@ function productValues(formData: FormData) {
   };
 }
 
+async function resolveSetId(supabase: Awaited<ReturnType<typeof requireUser>>["supabase"], userId: string, tcg: string, setName: string | null) {
+  if (!setName) return null;
+  const { data } = await supabase.from("tcg_sets").select("id,tcg,name,normalized_key").eq("user_id", userId).eq("tcg", tcg);
+  return resolveProductSet({ tcg, setName }, (data ?? []).map((set) => ({ id: set.id, tcg: set.tcg, name: set.name, normalizedKey: set.normalized_key })))?.id ?? null;
+}
+
 export async function createProduct(_state: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = productFormSchema.safeParse(productValues(formData));
   if (!parsed.success) return validationState(parsed.error);
 
   const { supabase, user } = await requireUser();
-  const { error } = await supabase.from("products").insert({ ...parsed.data, user_id: user.id });
+  const setId = await resolveSetId(supabase, user.id, parsed.data.tcg, parsed.data.set_name);
+  const { error } = await supabase.from("products").insert({ ...parsed.data, set_id: setId, user_id: user.id });
   if (error) return databaseErrorState("No se pudo crear el producto.");
 
   revalidatePath("/products");
@@ -37,7 +45,15 @@ export async function updateProduct(_state: ActionState, formData: FormData): Pr
   if (!parsed.success) return validationState(parsed.error);
 
   const { supabase, user } = await requireUser();
-  const { data, error } = await supabase.from("products").update(parsed.data).eq("id", id.data).eq("user_id", user.id).select("id").maybeSingle();
+  const { data: current } = await supabase.from("products").select("id,set_id").eq("id", id.data).eq("user_id", user.id).maybeSingle();
+  if (!current) return databaseErrorState("El producto no existe o no te pertenece.");
+  const exactSetId = await resolveSetId(supabase, user.id, parsed.data.tcg, parsed.data.set_name);
+  let setId = exactSetId;
+  if (!setId && current.set_id) {
+    const { data: assignedSet } = await supabase.from("tcg_sets").select("id,tcg").eq("id", current.set_id).eq("user_id", user.id).maybeSingle();
+    if (assignedSet?.tcg === parsed.data.tcg) setId = assignedSet.id;
+  }
+  const { data, error } = await supabase.from("products").update({ ...parsed.data, set_id: setId }).eq("id", id.data).eq("user_id", user.id).select("id").maybeSingle();
   if (error) return databaseErrorState("No se pudo actualizar el producto.");
   if (!data) return databaseErrorState("El producto no existe o no te pertenece.");
 

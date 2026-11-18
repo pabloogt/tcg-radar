@@ -30,13 +30,14 @@ function emptySummary(result: PokemillonMonitorResult): PokemillonIngestionSumma
   return { observations: result.observations.length, productsCreated: 0, productsMatched: 0, storesCreated: 0, storesMatched: 0, listingsCreated: 0, listingsUpdated: 0, priceHistoriesCreated: 0, alertCandidates: 0, alertsSent: 0, alertsDuplicate: 0, alertsFailed: 0, skipped: result.skipped.length, errors: result.errors.length };
 }
 
-export async function executePokemillonMonitor(options: PokemillonMonitorOptions & { dryRun: boolean; ingest?: (observation: NormalizedListingObservation) => Promise<IngestionResult>; deliver?: (result: IngestionResult) => Promise<AlertDeliverySummary> }): Promise<PokemillonExecutionResult> {
+export async function executePokemillonMonitor(options: PokemillonMonitorOptions & { dryRun: boolean; ingest?: (observation: NormalizedListingObservation) => Promise<IngestionResult>; deliver?: (result: IngestionResult) => Promise<AlertDeliverySummary>; afterIngestion?: (changedProductIds: readonly string[]) => Promise<void> }): Promise<PokemillonExecutionResult> {
   const result = await runPokemillonMonitor(options);
   const ingestion = emptySummary(result);
   if (options.dryRun) return { ...result, mode: "dry_run", ingestion };
   if (!options.ingest) throw new Error("La ejecución real requiere un servicio de ingesta autenticado.");
 
   const ingestionErrors: MonitorRunError[] = [];
+  const changedProductIds = new Set<string>();
   for (const observation of result.observations) {
     try {
       const outcome = await options.ingest(observation);
@@ -47,6 +48,7 @@ export async function executePokemillonMonitor(options: PokemillonMonitorOptions
       ingestion.listingsCreated += Number(outcome.listing.created);
       ingestion.listingsUpdated += Number(!outcome.listing.created && (outcome.listing.priceChanged || outcome.listing.stockChanged));
       ingestion.priceHistoriesCreated += Number(outcome.listing.historyCreated);
+      if (outcome.product.created || outcome.listing.created || outcome.listing.priceChanged || outcome.listing.stockChanged) changedProductIds.add(outcome.product.id);
       ingestion.alertCandidates += outcome.alertCandidates.length;
       if (options.deliver && outcome.alertCandidates.length > 0) {
         try {
@@ -61,6 +63,10 @@ export async function executePokemillonMonitor(options: PokemillonMonitorOptions
     } catch {
       ingestionErrors.push({ sourceUrl: observation.listing.url, stage: "ingestion", message: "La observación no pudo guardarse y fue omitida." });
     }
+  }
+  if (options.afterIngestion && changedProductIds.size > 0) {
+    try { await options.afterIngestion([...changedProductIds]); }
+    catch { ingestionErrors.push({ sourceUrl: "https://www.pokemillon.com", stage: "ingestion", message: "No se pudieron actualizar los snapshots de inversión de producto." }); }
   }
   ingestion.errors += ingestionErrors.length;
   return { ...result, errors: [...result.errors, ...ingestionErrors], mode: "ingest", ingestion };

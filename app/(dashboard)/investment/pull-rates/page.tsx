@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { EmptyState } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
+import { requireUser } from "@/lib/auth/require-user";
+import { loadSetCardIntelligence } from "@/lib/cards/service";
+import { loadSetPullRateIntelligence } from "@/lib/pull-rates/service";
+
+export default async function PullRateRankingPage() {
+  const { supabase, user } = await requireUser(); const { data: sets } = await supabase.from("tcg_sets").select("id,name,tcg").eq("user_id", user.id).order("name").limit(500); const setIds = (sets ?? []).map((set) => set.id); const now = new Date(); const cards = await loadSetCardIntelligence(supabase, user.id, setIds, now); const pulls = await loadSetPullRateIntelligence(supabase, user.id, setIds, cards, now); const setMap = new Map((sets ?? []).map((set) => [set.id, set])); const ranked = [...pulls.values()].filter((item) => item.confidence !== "INSUFFICIENT" && item.pullRateAttractiveness !== null).sort((a, b) => (b.pullRateAttractiveness ?? -1) - (a.pullRateAttractiveness ?? -1) || a.setId.localeCompare(b.setId));
+  return <><PageHeader title="Sets por Pull Rates" description="Ranking específico por equilibrio de apertura; no sustituye el Investment Score final." />{ranked.length ? <div className="space-y-3">{ranked.map((analytics, index) => { const set = setMap.get(analytics.setId); return <Link key={analytics.setId} href={`/investment/sets/${analytics.setId}`} className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"><div><p className="text-xs font-semibold uppercase text-emerald-700">#{index + 1} · {set?.tcg}</p><h2 className="font-semibold">{set?.name ?? "Colección"}</h2></div><div><p className="text-xs text-slate-500">Pull attractiveness</p><strong>{analytics.pullRateAttractiveness}/100</strong></div><div><p className="text-xs text-slate-500">Dificultad</p><strong>{analytics.topChaseDifficulty ?? "—"}/100</strong></div><div><p className="text-xs text-slate-500">Confianza</p><strong>{analytics.confidence.toLowerCase()}</strong></div></Link>; })}</div> : <EmptyState title="Sin sets evaluables" description="Importa pull rates con suficiente cobertura para crear el ranking." />}</>;
+}

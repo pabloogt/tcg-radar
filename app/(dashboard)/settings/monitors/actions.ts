@@ -6,6 +6,9 @@ import { deliverAlertCandidates, SupabaseAlertDeliveryRepository } from "@/lib/a
 import { SupabaseIngestionRepository } from "@/lib/ingestion/supabase-repository";
 import { requireUser } from "@/lib/auth/require-user";
 import { executePokemillonMonitor, type PokemillonExecutionResult } from "@/lib/monitors/pokemillon";
+import { loadProductInvestmentAnalyses } from "@/lib/investment/product-data";
+import { persistProductInvestmentSnapshot } from "@/lib/investment/product-snapshots";
+import { refreshMarketSignalsForProductsSafely } from "@/lib/market-signals/refresh";
 
 export type MonitorActionResult = {
   ok: boolean;
@@ -35,6 +38,7 @@ export async function runPokemillonIngestAction(): Promise<MonitorActionResult> 
       dryRun: false,
       ingest: (observation) => ingestObservation(repository, observation),
       deliver: async (outcome) => (await deliverAlertCandidates(alertRepository, outcome.alertCandidates)).summary,
+      afterIngestion: async (productIds) => { await refreshMarketSignalsForProductsSafely(supabase, user.id, productIds); const analyses = await loadProductInvestmentAnalyses(supabase, user.id, { productIds, limit: productIds.length }); for (const analysis of analyses) await persistProductInvestmentSnapshot(supabase, user.id, analysis); },
     });
     revalidatePath("/products");
     revalidatePath("/stores");
